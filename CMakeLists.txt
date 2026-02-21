@@ -4,5 +4,5 @@ set (INCLUDES include)
 idf_component_register(
         SRCS ${SOURCES}
         INCLUDE_DIRS ${INCLUDES}
-        REQUIRES driver nvs_flash bt tasks_scheduler logger app_state
+        REQUIRES driver ble_board_specific nvs_flash bt tasks_scheduler
 )
