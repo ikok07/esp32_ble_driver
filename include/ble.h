@@ -8,7 +8,6 @@
 #include "task_scheduler.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
-#include "board_specific.h"
 
 #define __weak __attribute__((weak))
 
@@ -91,6 +90,49 @@ typedef struct {
 } BLE_ManufactureDataTypeDef;
 
 typedef struct {
+
+    /**
+     * @brief This callback will be executed whenever the BLE stack gets reset by an error
+     */
+    void (*on_stack_reset)(int Reason);
+
+    /**
+        * @brief This callback will be executed when a GAP event occurs
+     */
+    void (*on_gap_event)(BLE_GapEventTypeDef Event, struct ble_gap_event *GapEvent, void *Arg);
+
+    /**
+     * @brief This callback will be executed whenever some service, characteristic or descriptor was registered
+     * @param Event BLE GATT Event
+     * @param EventCtxt Passed event context
+     * @param Arg Additional arguments
+     */
+    void (*on_gatt_reg_event)(BLE_GattRegisterEventTypeDef Event, struct ble_gatt_register_ctxt *EventCtxt, void *Arg);
+
+    /**
+     * @brief This callback will be executed whenever some device subscribes to some attribute
+     * @param event GAP Event
+     * @return 0 - if access allowed; BLE_ATT_ERR_INSUFFICIENT_AUTHEN - if access denied
+     */
+    uint8_t (*on_gatt_subscribe_event)(struct ble_gap_event *event);
+
+    /**
+     * @brief This callback will be executed when an error occurs while the driver is running
+     * @param Error BLE Error
+     */
+    void (*on_error)(BLE_ErrorTypeDef Error);
+
+    /**
+     * @brief This callback will be executed when configuring GAP advertisement.
+     *        It is used to set the required service UUIDs in the advertised fields.
+     * @param Fields Advertisement fields
+     */
+    void (*on_advertise_services)(struct ble_hs_adv_fields *Fields);
+
+
+} BLE_CallbacksTypeDef;
+
+typedef struct {
     char *DeviceName;
     uint16_t GapAppearance;
     uint8_t PrivateAddressEnabled;
@@ -99,6 +141,7 @@ typedef struct {
     uint8_t MaxConnections;                                 // This number should not be greater than CONFIG_NIMBLE_MAX_CONNECTIONS in menuconfig
     BLE_SecurityConfigTypeDef Security;
     BLE_ManufactureDataTypeDef ManufacturerData;            // You should enable these services in menuconfig first
+    struct ble_gatt_svc_def *GattServices;
 } BLE_ConfigTypeDef;
 
 typedef struct {
@@ -108,20 +151,11 @@ typedef struct {
     uint8_t AddressType;
     uint8_t Address[6];
     char AddressStr[20];
+    BLE_CallbacksTypeDef Callbacks;
 } BLE_HandleTypeDef;
-
-extern struct ble_gatt_svc_def gGattServices[];
 
 /* ------ Main methods ------ */
 BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble);
 BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted);
-
-/* ------ Callbacks ------ */
-void BLE_StackResetCB(int Reason);
-void BLE_GapEventCB(BLE_GapEventTypeDef Event, struct ble_gap_event *GapEvent, void *Arg);
-void BLE_GattRegEventCB(BLE_GattRegisterEventTypeDef Event, struct ble_gatt_register_ctxt *EventCtxt, void *Arg);
-uint8_t BLE_GattSubscribeCB(struct ble_gap_event *event);
-void BLE_ErrorCB(BLE_ErrorTypeDef Error);
-void BLE_AdvertiseSvcsCB(struct ble_hs_adv_fields *Fields);
 
 #endif //ESP32S3_BLE_BLE_H

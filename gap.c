@@ -17,35 +17,37 @@ static uint8_t conn_get_space_avail(BLE_HandleTypeDef *hble);
 static void format_addr(char *AddrStr, uint8_t Len, uint8_t Address[]);
 static BLE_ErrorTypeDef set_random_addr();
 
-int on_gap_event(struct ble_gap_event *event, void *arg) {
+int gap_event_handler(struct ble_gap_event *event, void *arg) {
     uint8_t err = 0;
     struct ble_gap_conn_desc desc;
     BLE_HandleTypeDef *hble = (BLE_HandleTypeDef*)arg;
+
+    if (hble->Callbacks.on_gap_event == NULL) return 0;
 
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT:
             if (event->connect.status == 0) {
                 if ((err = ble_gap_conn_find(event->connect.conn_handle, &desc)) != 0) {
-                    BLE_GapEventCB(BLE_GAP_EVENT_CONN_FAILED, event, NULL);
+                    hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event, NULL);
                     return err;
                 }
 
                 if (conn_add(hble, event->connect.conn_handle) != BLE_ERROR_OK) {
-                    BLE_GapEventCB(BLE_GAP_EVENT_CONN_STORE_FAILED, event, NULL);
+                    hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_STORE_FAILED, event, NULL);
                     return BLE_HS_EUNKNOWN;
                 };
 
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_SUCCESS, event, &desc);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_SUCCESS, event, &desc);
             } else {
                 // Connection failed, restart advertising
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
             }
             if (conn_get_space_avail(hble)) {
                 gap_start_adv(hble);
             };
             break;
         case BLE_GAP_EVENT_DISCONNECT:
-            BLE_GapEventCB(BLE_GAP_EVENT_CONN_DISCONNECT, event,  NULL);
+            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_DISCONNECT, event,  NULL);
             conn_remove(hble, event->disconnect.conn.conn_handle);
             if (conn_get_space_avail(hble)) {
                 gap_start_adv(hble);
@@ -53,44 +55,45 @@ int on_gap_event(struct ble_gap_event *event, void *arg) {
             break;
         case BLE_GAP_EVENT_CONN_UPDATE:
             if ((err = ble_gap_conn_find(event->connect.conn_handle, &desc)) != 0) {
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
                 return err;
             }
-            BLE_GapEventCB(BLE_GAP_EVENT_CONN_UPD, event,  &desc);
+            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_UPD, event,  &desc);
             break;
         case BLE_GAP_EVENT_SUBSCRIBE:
             if (conn_toggle_notifications(hble, event->subscribe.conn_handle, event->subscribe.cur_notify) != BLE_ERROR_OK) {
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_STORE_NOTIFY_TOGGLE_FAILED, event,  NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_STORE_NOTIFY_TOGGLE_FAILED, event,  NULL);
                 return BLE_HS_EUNKNOWN;
             }
 
             if (event->subscribe.cur_notify || event->subscribe.cur_indicate) {
-                if (!BLE_GattSubscribeCB(event)) {
+                if (hble->Callbacks.on_gatt_subscribe_event == NULL) return 0;
+                if (!hble->Callbacks.on_gatt_subscribe_event(event)) {
                     // Attribute requires encryption
                     if ((err = ble_gap_security_initiate(event->subscribe.conn_handle)) != 0) {
-                        BLE_GapEventCB(BLE_GAP_EVENT_CONN_ENC_FAILED, event,  NULL);
+                        hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_ENC_FAILED, event,  NULL);
                         return err;
                     }
                 }
-                BLE_GapEventCB(BLE_GAP_EVENT_SUB, event, NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_SUB, event, NULL);
             } else {
-                BLE_GapEventCB(BLE_GAP_EVENT_UNSUB, event, NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_UNSUB, event, NULL);
             }
             break;
         case BLE_GAP_EVENT_PASSKEY_ACTION:
-            BLE_GapEventCB(BLE_GAP_EVENT_PASSKEY, event, NULL);
+            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_PASSKEY, event, NULL);
             break;
         case BLE_GAP_EVENT_ENC_CHANGE:
             if (event->enc_change.status == 0) {
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_ENC, event, NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_ENC, event, NULL);
             } else {
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_ENC_FAILED, event, NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_ENC_FAILED, event, NULL);
             }
             break;
         case BLE_GAP_EVENT_REPEAT_PAIRING:
             uint8_t err = 0;
             if ((err = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc))) {
-                BLE_GapEventCB(BLE_GAP_EVENT_CONN_FAILED, event, NULL);
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event, NULL);
                 return err;
             }
             ble_store_util_delete_peer(&desc.peer_id_addr);
@@ -149,7 +152,7 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     rsp_fields.adv_itvl_is_present = 1;
 
     // Call callback (used to set the advertised services)
-    BLE_AdvertiseSvcsCB(&rsp_fields);
+    if (hble->Callbacks.on_advertise_services != NULL) hble->Callbacks.on_advertise_services(&rsp_fields);
 
     // Set response fields
     if ((err = ble_gap_adv_rsp_set_fields(&rsp_fields)) != 0) return BLE_ERROR_RSP_FIELDS;
@@ -165,7 +168,7 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     adv_params.itvl_max = BLE_GAP_ADV_ITVL_MS(hble->Config.AdvertisingIntervalMS + 20);
 
     // Start advertising
-    if ((err = ble_gap_adv_start(hble->AddressType, NULL, BLE_HS_FOREVER, &adv_params, on_gap_event, hble))) return BLE_ERROR_ADV_START;
+    if ((err = ble_gap_adv_start(hble->AddressType, NULL, BLE_HS_FOREVER, &adv_params, gap_event_handler, hble))) return BLE_ERROR_ADV_START;
 
     return BLE_ERROR_OK;
 }
