@@ -102,6 +102,11 @@ BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble) {
     return BLE_ERROR_OK;
 }
 
+/**
+ * @brief Checks whether the connection is encrypted
+ * @param hconn BLE Handle
+ * @param IsEncrypted Result variable
+ */
 BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted) {
     if (!hconn) return BLE_ERROR_MISSING_CONN;
 
@@ -113,6 +118,17 @@ BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted) {
 
     *IsEncrypted = desc.sec_state.encrypted;
     return BLE_ERROR_OK;
+}
+
+/**
+ * @brief Returns whether there is at least one connected device to the MCU
+ * @param hble BLE Handle
+ */
+uint8_t BLE_CheckConnectionsAvailable(BLE_HandleTypeDef *hble) {
+    for (int i = 0; i < sizeof(hble->Connections) / sizeof(hble->Connections[0]); i++) {
+        if (hble->Connections[i].Active) return 1;
+    }
+    return 0;
 }
 
 void on_stack_sync_cb(void) {

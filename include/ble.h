@@ -159,5 +159,6 @@ typedef struct {
 /* ------ Main methods ------ */
 BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble);
 BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted);
+uint8_t BLE_CheckConnectionsAvailable(BLE_HandleTypeDef *hble);
 
 #endif //ESP32S3_BLE_BLE_H

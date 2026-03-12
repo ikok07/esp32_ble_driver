@@ -47,8 +47,8 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
             };
             break;
         case BLE_GAP_EVENT_DISCONNECT:
-            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_DISCONNECT, event,  NULL);
             conn_remove(hble, event->disconnect.conn.conn_handle);
+            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_DISCONNECT, event,  NULL);
             if (conn_get_space_avail(hble)) {
                 gap_start_adv(hble);
             };
