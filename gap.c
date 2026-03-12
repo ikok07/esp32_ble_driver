@@ -15,7 +15,7 @@ static void conn_remove(BLE_HandleTypeDef *hble, uint16_t hconn);
 static BLE_ErrorTypeDef conn_toggle_notifications(BLE_HandleTypeDef *hble, uint16_t hconn, uint8_t Enabled);
 static uint8_t conn_get_space_avail(BLE_HandleTypeDef *hble);
 static void format_addr(char *AddrStr, uint8_t Len, uint8_t Address[]);
-static BLE_ErrorTypeDef set_random_addr();
+static BLE_ErrorTypeDef set_random_addr(uint8_t NonResolvable);
 
 int gap_event_handler(struct ble_gap_event *event, void *arg) {
     uint8_t err = 0;
@@ -227,11 +227,11 @@ void format_addr(char *AddrStr, uint8_t Len, uint8_t Address[]) {
     snprintf(AddrStr, Len, "%02X:%02X:%02X:%02X:%02X:%02X:", Address[0], Address[1], Address[2], Address[3], Address[4], Address[5]);
 }
 
-BLE_ErrorTypeDef set_random_addr() {
+BLE_ErrorTypeDef set_random_addr(uint8_t NonResolvable) {
     ble_addr_t addr;
 
     // Generate random address
-    if (ble_hs_id_gen_rnd(0, &addr) != 0) return BLE_ERROR_GAP_ADDRESS;
+    if (ble_hs_id_gen_rnd(NonResolvable, &addr) != 0) return BLE_ERROR_GAP_ADDRESS;
 
     // Set address
     if (ble_hs_id_set_rnd(addr.val) != 0) return BLE_ERROR_GAP_ADDRESS;
@@ -247,7 +247,7 @@ BLE_ErrorTypeDef gap_start_adv(BLE_HandleTypeDef *hble) {
 
     // Make sure valid address is set
     if (hble->Config.PrivateAddressEnabled) {
-        if ((ble_error = set_random_addr()) != BLE_ERROR_OK) return ble_error;
+        if ((ble_error = set_random_addr(hble->Config.NonResolvablePrivateAddress)) != BLE_ERROR_OK) return ble_error;
     }
     if ((err = ble_hs_util_ensure_addr(hble->Config.PrivateAddressEnabled)) != 0) return BLE_ERROR_ADV_ADDR;
 

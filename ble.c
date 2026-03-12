@@ -65,9 +65,11 @@ BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble) {
     }
 
     // Set manufacturer data
-    // if (hble->Config.ManufacturerData.ManufacturerName) ble_svc_dis_manufacturer_name_set(hble->Config.ManufacturerData.ManufacturerName);
-    // if (hble->Config.ManufacturerData.SerialNumber) ble_svc_dis_serial_number_set(hble->Config.ManufacturerData.SerialNumber);
-    // if (hble->Config.ManufacturerData.FirmwareRevision) ble_svc_dis_firmware_revision_set(hble->Config.ManufacturerData.FirmwareRevision);
+    ble_svc_dis_init();
+    if (hble->Config.ManufacturerData.ModelNumber) ble_svc_dis_model_number_set(hble->Config.ManufacturerData.ModelNumber);
+    if (hble->Config.ManufacturerData.ManufacturerName) ble_svc_dis_manufacturer_name_set(hble->Config.ManufacturerData.ManufacturerName);
+    if (hble->Config.ManufacturerData.SerialNumber) ble_svc_dis_serial_number_set(hble->Config.ManufacturerData.SerialNumber);
+    if (hble->Config.ManufacturerData.FirmwareRevision) ble_svc_dis_firmware_revision_set(hble->Config.ManufacturerData.FirmwareRevision);
 
     // Initialize GAP
     if ((ble_err = gap_init(gHble)) != BLE_ERROR_OK) return ble_err;
@@ -79,7 +81,7 @@ BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble) {
     ble_hs_cfg.reset_cb = hble->Callbacks.on_stack_reset;
     ble_hs_cfg.sync_cb = on_stack_sync_cb;
     ble_hs_cfg.gatts_register_cb = on_gatt_event;
-    ble_hs_cfg.gatts_register_arg = &gHble;
+    ble_hs_cfg.gatts_register_arg = gHble;
 
     ble_hs_cfg.sm_bonding = hble->Config.Security.EncryptedConnection;
     ble_hs_cfg.sm_sc = hble->Config.Security.EncryptedConnection;

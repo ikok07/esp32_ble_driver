@@ -84,6 +84,7 @@ typedef struct {
 } BLE_ConnTypeDef;
 
 typedef struct {
+    char *ModelNumber;
     char *ManufacturerName;
     char *SerialNumber;
     char *FirmwareRevision;
@@ -136,6 +137,7 @@ typedef struct {
     char *DeviceName;
     uint16_t GapAppearance;
     uint8_t PrivateAddressEnabled;
+    uint8_t NonResolvablePrivateAddress;                    // Only valid when private address is enabled
     BLE_GapRoleTypeDef GapRole;
     uint16_t AdvertisingIntervalMS;
     uint8_t MaxConnections;                                 // This number should not be greater than CONFIG_NIMBLE_MAX_CONNECTIONS in menuconfig
