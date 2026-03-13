@@ -31,7 +31,11 @@ typedef enum {
     BLE_ERROR_ADV_ADDR_COPY,
     BLE_ERROR_ADV_FIELDS,
     BLE_ERROR_RSP_FIELDS,
-    BLE_ERROR_ADV_START
+    BLE_ERROR_ADV_START,
+    BLE_ERROR_NOTIFY_MBUF_ALOC,
+    BLE_ERROR_NOTIFY_FAILED,
+    BLE_ERROR_NOTIFY_CONN_CHECK,
+    BLE_ERROR_NOTIFY_CONN_NOT_ENC
 } BLE_ErrorTypeDef;
 
 typedef enum {
@@ -160,5 +164,8 @@ typedef struct {
 BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble);
 BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted);
 uint8_t BLE_CheckConnectionsAvailable(BLE_HandleTypeDef *hble);
+
+/* ------ Utilities ------ */
+BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t ConnCount, uint16_t AttHandle, void *Value, uint32_t Len, uint8_t EncryptConnection);
 
 #endif //ESP32S3_BLE_BLE_H
