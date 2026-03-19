@@ -148,13 +148,15 @@ BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t Conn
         BLE_ConnTypeDef *conn = &(Connections[i]);
         if (!conn->Active || conn->hconn == BLE_HS_CONN_HANDLE_NONE || !conn->NotificationsEnabled) continue;
 
-        uint8_t conn_enc;
-        BLE_ErrorTypeDef ble_err;
-        if ((ble_err = BLE_CheckConnEncrypted(conn->hconn, &conn_enc)) != BLE_ERROR_OK) {
-            return BLE_ERROR_NOTIFY_CONN_CHECK;
-        }
+        if (EncryptConnection) {
+            uint8_t conn_enc;
+            BLE_ErrorTypeDef ble_err;
+            if ((ble_err = BLE_CheckConnEncrypted(conn->hconn, &conn_enc)) != BLE_ERROR_OK) {
+                return BLE_ERROR_NOTIFY_CONN_CHECK;
+            }
 
-        if (EncryptConnection && !conn_enc) return BLE_ERROR_NOTIFY_CONN_NOT_ENC;
+            if (!conn_enc) return BLE_ERROR_NOTIFY_CONN_NOT_ENC;
+        }
 
         uint8_t err = 0;
         if ((err = ble_gatts_notify_custom(conn->hconn, AttHandle, om)) != 0) {
