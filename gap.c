@@ -160,8 +160,8 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     /* ------ Response params ------ */
 
     // Make device discoverable and connectable
-    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
+    adv_params.disc_mode = hble->Config.DiscoverabilityMode;
+    adv_params.conn_mode = hble->Config.ConnectionMode;
 
     // Set advertising interval
     adv_params.itvl_min = BLE_GAP_ADV_ITVL_MS(hble->Config.AdvertisingIntervalMS);

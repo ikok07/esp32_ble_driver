@@ -75,6 +75,18 @@ typedef enum {
     BLE_IOCAP_NO_INP_OUT = 3,
 } BLE_IOCapabilityTypeDef;
 
+typedef enum {
+    BLE_CONN_MODE_DENY_ALL,
+    BLE_CONN_MODE_DIRECTED,                                 // Only allow specific devices to connect
+    BLE_CONN_MODE_ALLOW_ALL
+} BLE_ConnModeTypeDef;
+
+typedef enum {
+    BLE_DISC_MODE_DENY_ALL,
+    BLE_DISC_MODE_LIMITED_TIME,                              // Limited discover window
+    BLE_DISC_MODE_ALLOW_ALL
+} BLE_DiscModeTypeDef;
+
 typedef struct {
     uint8_t EncryptedConnection;                            // This enabled device bonding, random private address as well as secure connection flag
     BLE_ProtectionTypeDef ProtectionType;
@@ -147,6 +159,8 @@ typedef struct {
     uint8_t MaxConnections;                                 // This number should not be greater than CONFIG_NIMBLE_MAX_CONNECTIONS in menuconfig
     BLE_SecurityConfigTypeDef Security;
     BLE_ManufactureDataTypeDef ManufacturerData;            // You should enable these services in menuconfig first
+    BLE_ConnModeTypeDef ConnectionMode;
+    BLE_DiscModeTypeDef DiscoverabilityMode;
     struct ble_gatt_svc_def *GattServices;
 } BLE_ConfigTypeDef;
 
