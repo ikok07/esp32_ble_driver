@@ -141,10 +141,17 @@ typedef struct {
 
     /**
      * @brief This callback will be executed when configuring GAP advertisement.
-     *        It is used to set the required service UUIDs in the advertised fields.
+     *        It is used to set the required service UUIDs in the advertisement fields.
      * @param Fields Advertisement fields
      */
-    void (*on_advertise_services)(struct ble_hs_adv_fields *Fields);
+    void (*on_advertise)(struct ble_hs_adv_fields *Fields);
+
+    /**
+     * @brief This callback will be executed when configuring GAP advertisement response.
+     *        It is used to set the required service UUIDs in the response fields.
+     * @param Fields Advertisement fields
+     */
+    void (*on_advertise_response)(struct ble_hs_adv_fields *Fields);
 
 
 } BLE_CallbacksTypeDef;
@@ -161,6 +168,8 @@ typedef struct {
     BLE_ManufactureDataTypeDef ManufacturerData;            // You should enable these services in menuconfig first
     BLE_ConnModeTypeDef ConnectionMode;
     BLE_DiscModeTypeDef DiscoverabilityMode;
+    uint8_t *AdvMfgData;                                    // Optional custom manufacturer data which will be included in advertisement packets
+    uint8_t AdvMfgDataLen;
     struct ble_gatt_svc_def *GattServices;
 } BLE_ConfigTypeDef;
 

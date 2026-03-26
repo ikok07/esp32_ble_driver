@@ -119,28 +119,29 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     // Set advertising flags (Always discoverable and only BLE Supported)
     adv_fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
 
-    // Set device name
-    const char *name = ble_svc_gap_device_name();
-    adv_fields.name = (uint8_t*)name;
-    adv_fields.name_len = strlen(name);
-    adv_fields.name_is_complete = 1;
+    // Set manufacturer data
+    if (hble->Config.AdvMfgDataLen > 0) {
+        adv_fields.mfg_data_len = hble->Config.AdvMfgDataLen;
+        adv_fields.mfg_data = hble->Config.AdvMfgData;
+    }
 
     // Set device TX power
     adv_fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
     adv_fields.tx_pwr_lvl_is_present = 1;
 
-    // Set device appearance
-    adv_fields.appearance = hble->Config.GapAppearance;
-    adv_fields.appearance_is_present = 1;
-
-    // Set device role
-    adv_fields.le_role = hble->Config.GapRole;
-    adv_fields.le_role_is_present = 1;
+    // Call callback (used to set additional advertisement fields)
+    if (hble->Callbacks.on_advertise != NULL) hble->Callbacks.on_advertise(&adv_fields);
 
     // Set advertisement fields
     if ((err = ble_gap_adv_set_fields(&adv_fields)) != 0) return BLE_ERROR_ADV_FIELDS;
 
     /* ------ Response fields ------ */
+
+    // Set device name
+    const char *name = ble_svc_gap_device_name();
+    rsp_fields.name = (uint8_t*)name;
+    rsp_fields.name_len = strlen(name);
+    rsp_fields.name_is_complete = 1;
 
     // Set device address
     rsp_fields.device_addr = hble->Address;
@@ -151,8 +152,16 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     rsp_fields.adv_itvl = BLE_GAP_ADV_ITVL_MS(hble->Config.AdvertisingIntervalMS);
     rsp_fields.adv_itvl_is_present = 1;
 
-    // Call callback (used to set the advertised services)
-    if (hble->Callbacks.on_advertise_services != NULL) hble->Callbacks.on_advertise_services(&rsp_fields);
+    // Set device appearance
+    rsp_fields.appearance = hble->Config.GapAppearance;
+    rsp_fields.appearance_is_present = 1;
+
+    // Set device role
+    rsp_fields.le_role = hble->Config.GapRole;
+    rsp_fields.le_role_is_present = 1;
+
+    // Call callback (used to set additional advertisement response fields)
+    if (hble->Callbacks.on_advertise_response != NULL) hble->Callbacks.on_advertise_response(&rsp_fields);
 
     // Set response fields
     if ((err = ble_gap_adv_rsp_set_fields(&rsp_fields)) != 0) return BLE_ERROR_RSP_FIELDS;
