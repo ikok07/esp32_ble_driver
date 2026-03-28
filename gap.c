@@ -144,21 +144,21 @@ BLE_ErrorTypeDef start_adv(BLE_HandleTypeDef *hble) {
     rsp_fields.name_is_complete = 1;
 
     // Set device address
-    rsp_fields.device_addr = hble->Address;
-    rsp_fields.device_addr_type = hble->AddressType;
-    rsp_fields.device_addr_is_present = 1;
+    // rsp_fields.device_addr = hble->Address;
+    // rsp_fields.device_addr_type = hble->AddressType;
+    // rsp_fields.device_addr_is_present = 1;
 
     // Set advertising interval
-    rsp_fields.adv_itvl = BLE_GAP_ADV_ITVL_MS(hble->Config.AdvertisingIntervalMS);
-    rsp_fields.adv_itvl_is_present = 1;
+    // rsp_fields.adv_itvl = BLE_GAP_ADV_ITVL_MS(hble->Config.AdvertisingIntervalMS);
+    // rsp_fields.adv_itvl_is_present = 1;
 
     // Set device appearance
-    rsp_fields.appearance = hble->Config.GapAppearance;
-    rsp_fields.appearance_is_present = 1;
+    // rsp_fields.appearance = hble->Config.GapAppearance;
+    // rsp_fields.appearance_is_present = 1;
 
     // Set device role
-    rsp_fields.le_role = hble->Config.GapRole;
-    rsp_fields.le_role_is_present = 1;
+    // rsp_fields.le_role = hble->Config.GapRole;
+    // rsp_fields.le_role_is_present = 1;
 
     // Call callback (used to set additional advertisement response fields)
     if (hble->Callbacks.on_advertise_response != NULL) hble->Callbacks.on_advertise_response(&rsp_fields);
