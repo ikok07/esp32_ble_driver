@@ -9,8 +9,6 @@
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 
-#define __weak __attribute__((weak))
-
 typedef enum {
     BLE_ERROR_OK,
     BLE_ERROR_INVALID_MAX_CONN,
@@ -189,6 +187,6 @@ BLE_ErrorTypeDef BLE_CheckConnEncrypted(uint16_t hconn, uint8_t *IsEncrypted);
 uint8_t BLE_CheckConnectionsAvailable(BLE_HandleTypeDef *hble);
 
 /* ------ Utilities ------ */
-BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t ConnCount, uint16_t AttHandle, void *Value, uint32_t Len, uint8_t EncryptConnection);
+BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t ConnCount, uint16_t AttHandle, void *Value, uint16_t Len, uint8_t EncryptConnection);
 
 #endif //ESP32S3_BLE_BLE_H

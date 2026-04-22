@@ -140,30 +140,44 @@ uint8_t BLE_CheckConnectionsAvailable(BLE_HandleTypeDef *hble) {
  * @param Len Length of the value
  * @param EncryptConnection Whether the connection should be encrypted for notification to be sent
  */
-BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t ConnCount, uint16_t AttHandle, void *Value, uint32_t Len, uint8_t EncryptConnection) {
+BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t ConnCount, uint16_t AttHandle, void *Value, uint16_t Len, uint8_t EncryptConnection) {
+    if (ConnCount == 0) return BLE_ERROR_OK;
+
     struct os_mbuf *om = ble_hs_mbuf_from_flat(Value, Len);
     if (om == NULL) return BLE_ERROR_NOTIFY_MBUF_ALOC;
 
     for (int i = 0; i < ConnCount; i++) {
+        struct os_mbuf *om_copy = os_mbuf_dup(om);
+        if (!om_copy) continue;
+
         BLE_ConnTypeDef *conn = &(Connections[i]);
-        if (!conn->Active || conn->hconn == BLE_HS_CONN_HANDLE_NONE || !conn->NotificationsEnabled) continue;
+        if (!conn->Active || conn->hconn == BLE_HS_CONN_HANDLE_NONE || !conn->NotificationsEnabled) {
+            os_mbuf_free_chain(om_copy);
+            continue;
+        }
 
         if (EncryptConnection) {
             uint8_t conn_enc;
             BLE_ErrorTypeDef ble_err;
             if ((ble_err = BLE_CheckConnEncrypted(conn->hconn, &conn_enc)) != BLE_ERROR_OK) {
+                os_mbuf_free_chain(om_copy);
                 return BLE_ERROR_NOTIFY_CONN_CHECK;
             }
 
-            if (!conn_enc) return BLE_ERROR_NOTIFY_CONN_NOT_ENC;
+            if (!conn_enc) {
+                os_mbuf_free_chain(om_copy);
+                return BLE_ERROR_NOTIFY_CONN_NOT_ENC;
+            }
         }
 
         uint8_t err = 0;
-        if ((err = ble_gatts_notify_custom(conn->hconn, AttHandle, om)) != 0) {
+        if ((err = ble_gatts_notify_custom(conn->hconn, AttHandle, om_copy) != 0)) {
+            os_mbuf_free_chain(om_copy);
             return BLE_ERROR_NOTIFY_FAILED;
         };
     }
 
+    os_mbuf_free_chain(om);
     return BLE_ERROR_OK;
 }
 
