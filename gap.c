@@ -17,6 +17,28 @@ static uint8_t conn_get_space_avail(BLE_HandleTypeDef *hble);
 static void format_addr(char *AddrStr, uint8_t Len, uint8_t Address[]);
 static BLE_ErrorTypeDef set_random_addr(uint8_t NonResolvable);
 
+void update_params_timer_cb(TimerHandle_t xTimer) {
+    BLE_TimerCbPayloadTypeDef *payload = pvTimerGetTimerID(xTimer);
+    BLE_HandleTypeDef *hble = payload->hble;
+
+    struct ble_gap_upd_params params = {
+        .itvl_min = BLE_GAP_CONN_ITVL_MS(hble->Config.GapParams.MinimumIntervalMs),
+        .itvl_max = BLE_GAP_CONN_ITVL_MS(hble->Config.GapParams.MaximumIntervalMs),
+        .latency = hble->Config.GapParams.Latency,
+        .supervision_timeout = BLE_GAP_SUPERVISION_TIMEOUT_MS(hble->Config.GapParams.SupervisionTimeoutMs),
+        .min_ce_len = (hble->Config.GapParams.MinConnEventLengthMs * 8) / 5,
+        .max_ce_len = (hble->Config.GapParams.MaxConnEventLengthMs * 8) / 5
+    };
+
+    uint8_t err;
+    if ((err = ble_gap_update_params(payload->Event->connect.conn_handle, &params)) != 0) {
+        hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_UPD_REQ_FAILED, payload->Event, NULL);
+    };
+
+    // Free payload memory
+    free(payload);
+}
+
 int gap_event_handler(struct ble_gap_event *event, void *arg) {
     uint8_t err = 0;
     struct ble_gap_conn_desc desc;
@@ -38,6 +60,19 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
                 };
 
                 hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_SUCCESS, event, &desc);
+
+                if (hble->Config.GapParams.Activate) {
+                    BLE_TimerCbPayloadTypeDef *timer_payload = pvPortMalloc(sizeof(BLE_TimerCbPayloadTypeDef));
+                    timer_payload->hble = hble;
+                    timer_payload->Event = event;
+
+                    // Wait 2 seconds before sending an update request
+                    TimerHandle_t timer = xTimerCreate("BLE Update timer", pdMS_TO_TICKS(2000), pdFALSE, timer_payload, update_params_timer_cb);
+
+                    if (timer != NULL) {
+                        xTimerStart(timer, 0);
+                    }
+                }
             } else {
                 // Connection failed, restart advertising
                 hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
@@ -54,11 +89,17 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
             };
             break;
         case BLE_GAP_EVENT_CONN_UPDATE:
-            if ((err = ble_gap_conn_find(event->connect.conn_handle, &desc)) != 0) {
-                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
-                return err;
+            if (event->conn_update.status == 0) {
+                if ((err = ble_gap_conn_find(event->conn_update.conn_handle, &desc)) != 0) {
+                    hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event,  NULL);
+                    return err;
+                }
+
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_UPD, event,  &desc);
+            } else {
+                hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_UPD_FAILED, event, NULL);
             }
-            hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_UPD, event,  &desc);
+
             break;
         case BLE_GAP_EVENT_SUBSCRIBE:
             if (conn_toggle_notifications(hble, event->subscribe.conn_handle, event->subscribe.cur_notify) != BLE_ERROR_OK) {
@@ -91,7 +132,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
             }
             break;
         case BLE_GAP_EVENT_REPEAT_PAIRING:
-            uint8_t err = 0;
+            err = 0;
             if ((err = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc))) {
                 hble->Callbacks.on_gap_event(BLE_GAP_EVENT_CONN_FAILED, event, NULL);
                 return err;

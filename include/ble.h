@@ -50,6 +50,8 @@ typedef enum {
     BLE_GAP_EVENT_CONN_ENC_FAILED,
     BLE_GAP_EVENT_CONN_DISCONNECT,
     BLE_GAP_EVENT_CONN_UPD,                             // Passed argument - pointer to struct ble_gap_conn_desc
+    BLE_GAP_EVENT_CONN_UPD_FAILED,
+    BLE_GAP_EVENT_CONN_UPD_REQ_FAILED,
     BLE_GAP_EVENT_SUB,
     BLE_GAP_EVENT_UNSUB,
     BLE_GAP_EVENT_PASSKEY,
@@ -155,8 +157,19 @@ typedef struct {
 } BLE_CallbacksTypeDef;
 
 typedef struct {
+    uint8_t  Activate;                                      // Whether to attempt to negotiate these BLE params with the other device
+    uint16_t MinimumIntervalMs;                             // Fastest acceptable connection interval — lower = more responsive, more power
+    uint16_t MaximumIntervalMs;                             // Slowest acceptable connection interval — central picks a value between min and max
+    uint16_t Latency;                                       // Number of connection events the peripheral is allowed to skip when idle
+    uint16_t SupervisionTimeoutMs;                          // How long without a packet before the connection is declared lost. Must satisfy SupervisionTimeoutMs > (1 + latency) * MaximumIntervalMs * 2
+    uint16_t MinConnEventLengthMs;                          // Hint to controller for minimum radio-on time per connection event. Set to 0 to let the controller decide
+    uint16_t MaxConnEventLengthMs;                          // Hint to controller for maximum radio-on time per connection event. Set to 0 to let the controller decide
+} BLE_GapParamsTypeDef;
+
+typedef struct {
     char *DeviceName;
     uint16_t GapAppearance;
+    BLE_GapParamsTypeDef GapParams;                                //  L2CAP Connection Parameter Update Request which the central may ignore
     uint8_t PrivateAddressEnabled;
     uint8_t NonResolvablePrivateAddress;                    // Only valid when private address is enabled
     BLE_GapRoleTypeDef GapRole;
@@ -180,6 +193,11 @@ typedef struct {
     char AddressStr[20];
     BLE_CallbacksTypeDef Callbacks;
 } BLE_HandleTypeDef;
+
+typedef struct {
+    BLE_HandleTypeDef *hble;
+    struct ble_gap_event *Event;
+} BLE_TimerCbPayloadTypeDef;
 
 /* ------ Main methods ------ */
 BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble);
