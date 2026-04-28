@@ -14,6 +14,7 @@
 #include "nimble/nimble_port.h"
 #include "nimble/ble.h"
 
+#include "esp_nimble_mem.h"
 #include "services/dis/ble_svc_dis.h"
 
 /* ------ Library function declarations ------ */
@@ -65,11 +66,13 @@ BLE_ErrorTypeDef BLE_Init(BLE_HandleTypeDef *hble) {
     }
 
     // Set manufacturer data
+#ifdef CONFIG_BT_NIMBLE_DIS_SERVICE
     ble_svc_dis_init();
     if (hble->Config.ManufacturerData.ModelNumber) ble_svc_dis_model_number_set(hble->Config.ManufacturerData.ModelNumber);
     if (hble->Config.ManufacturerData.ManufacturerName) ble_svc_dis_manufacturer_name_set(hble->Config.ManufacturerData.ManufacturerName);
     if (hble->Config.ManufacturerData.SerialNumber) ble_svc_dis_serial_number_set(hble->Config.ManufacturerData.SerialNumber);
     if (hble->Config.ManufacturerData.FirmwareRevision) ble_svc_dis_firmware_revision_set(hble->Config.ManufacturerData.FirmwareRevision);
+#endif
 
     // Initialize GAP
     if ((ble_err = gap_init(gHble)) != BLE_ERROR_OK) return ble_err;
@@ -151,6 +154,7 @@ BLE_ErrorTypeDef BLE_SendNotification(BLE_ConnTypeDef *Connections, uint8_t Conn
         if (!om_copy) continue;
 
         BLE_ConnTypeDef *conn = &(Connections[i]);
+
         if (!conn->Active || conn->hconn == BLE_HS_CONN_HANDLE_NONE || !conn->NotificationsEnabled) {
             os_mbuf_free_chain(om_copy);
             continue;
